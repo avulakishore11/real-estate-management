@@ -11,9 +11,9 @@ pool:
 
 variables:
   NODE_VERSION: '20'
-  AZURE_SERVICE_CONNECTION: 'ado-2-azure'   # ← replace
-  SWA_NAME: 'orgchat'                       # ← replace
-  SWA_RESOURCE_GROUP: 'kaseya-orgchat'                  # ← replace
+  AZURE_SERVICE_CONNECTION: 'ado-2-azure'   # ← replace this with your svc principal name
+  SWA_NAME: 'orgchat'                       # ← replace this with SWA name
+  SWA_RESOURCE_GROUP: 'kaseya-orgchat'                  # ← replace this with SWA resource group
 
 stages:
   - stage: Build
