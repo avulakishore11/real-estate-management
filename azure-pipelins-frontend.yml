@@ -1,0 +1,64 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - frontend/**   # only triggers when frontend code changes
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  NODE_VERSION: '20'
+
+stages:
+  - stage: Build
+    displayName: 'Build Frontend'
+    jobs:
+      - job: BuildAngular
+        displayName: 'Install & Build Angular App'
+        steps:
+          - task: NodeTool@0
+            displayName: 'Setup Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: '$(NODE_VERSION)'
+
+          - task: Npm@1
+            displayName: 'Install dependencies'
+            inputs:
+              command: ci
+              workingDir: 'frontend'
+
+          - task: Npm@1
+            displayName: 'Build Angular (production)'
+            inputs:
+              command: custom
+              workingDir: 'frontend'
+              customCommand: 'run build -- --configuration production'
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish build artifact'
+            inputs:
+              targetPath: 'frontend/www'
+              artifact: 'frontend-dist'
+
+  - stage: Deploy
+    displayName: 'Deploy to Azure Static Web Apps'
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - deployment: DeployFrontend
+        displayName: 'Deploy Frontend'
+        environment: 'production'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureStaticWebApp@0
+                  displayName: 'Deploy to Azure Static Web Apps'
+                  inputs:
+                    app_location: 'frontend'
+                    output_location: 'www'
+                    skip_api_build: true
+                    azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN)
