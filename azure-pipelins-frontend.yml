@@ -39,12 +39,20 @@ stages:
               command: custom
               workingDir: 'frontend'
               customCommand: 'run build -- --configuration production'
-
+       
           - task: PublishPipelineArtifact@1
             displayName: 'Publish build artifact'
             inputs:
               targetPath: 'frontend/www'
               artifact: 'frontend-dist'
+          
+          
+          - task: DownloadBuildArtifacts@1
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: 'frontend-dist'
+              downloadPath: '$(System.ArtifactsDirectory)'
 
   - stage: Deploy
     displayName: 'Deploy to Azure Static Web Apps'
