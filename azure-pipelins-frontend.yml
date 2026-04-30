@@ -50,7 +50,7 @@ stages:
     jobs:
       - deployment: DeployFrontend
         displayName: 'Deploy Frontend'
-        environment: 'production'
+        environment: 'Dev'
         strategy:
           runOnce:
             deploy:
