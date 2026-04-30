@@ -66,6 +66,12 @@ stages:
           runOnce:
             deploy:
               steps:
+               - task: DownloadPipelineArtifact@2
+                  displayName: 'Download build artifact'
+                  inputs:
+                    artifact: 'frontend-dist'
+                    path: '$(Pipeline.Workspace)/frontend-dist'
+
                 
                 ## Uses your service principal to call az staticwebapp secrets list and retrieve the real token
                 - task: AzureCLI@2
@@ -86,7 +92,7 @@ stages:
                 - task: AzureStaticWebApp@0
                   displayName: 'Deploy to Azure Static Web Apps'
                   inputs:
-                    app_location: 'frontend'
-                    output_location: 'www'
+                    app_location: '$(Pipeline.Workspace)/frontend-dist' ## Deployment jobs don't checkout the repo — artifact is auto-downloaded here
+                    output_location: '' # Artifact already contains the built www contents directly, no subfolder needed
                     skip_api_build: true
                     azure_static_web_apps_api_token: $(SWA_TOKEN) #Token fetched fresh every run — no manual secret management needed
