@@ -74,6 +74,13 @@ stages:
                   --name $(SWA_NAME) \
                   --resource-group $(SWA_RESOURCE_GROUP) \
                   --query "properties.apiKey" -o tsv)            # fetches the SWA deployment token dynamically — no need to store it manually
+
+                if [ -z "$TOKEN" ]; then                         # guard: if token came back empty, fail early with a clear message
+                  echo "##[error]Token is empty — verify SWA_NAME ('$(SWA_NAME)') and SWA_RESOURCE_GROUP ('$(SWA_RESOURCE_GROUP)') are correct"
+                  exit 1
+                fi
+
+                echo "Token fetched OK (length: ${#TOKEN})"      # prints token length only — safe to log, never reveals the value
                 echo "##vso[task.setvariable variable=SWA_TOKEN;issecret=true]$TOKEN"   # saves token as a secret pipeline variable, masked in logs
 
           - task: AzureStaticWebApp@0
