@@ -11,9 +11,9 @@ pool:
 
 variables:
   NODE_VERSION: '20'
-  AZURE_SERVICE_CONNECTION: 'ado-2-azure'   # ← replace
-  SWA_NAME: 'orgchat'                       # ← replace
-  SWA_RESOURCE_GROUP: 'kaseya-orgchat'                  # ← replace
+  AZURE_SERVICE_CONNECTION: 'ado-2-azure'
+  SWA_NAME: 'orgchat'
+  SWA_RESOURCE_GROUP: 'kaseya-orgchat'
 
 stages:
   - stage: Build
@@ -59,7 +59,12 @@ stages:
             deploy:
               steps:
                 
-                ## Uses your service principal to call az staticwebapp secrets list and retrieve the real token
+                - task: DownloadPipelineArtifact@2
+                  displayName: 'Download build artifact'
+                  inputs:
+                    artifact: 'frontend-dist'
+                    path: '$(Pipeline.Workspace)/frontend-dist'
+
                 - task: AzureCLI@2
                   displayName: 'Fetch SWA deployment token'
                   name: GetToken
@@ -72,13 +77,12 @@ stages:
                         --name $(SWA_NAME) \
                         --resource-group $(SWA_RESOURCE_GROUP) \
                         --query "properties.apiKey" -o tsv)
-                      echo "##vso[task.setvariable variable=SWA_TOKEN;issecret=true]$TOKEN" # Stores the token as a masked pipeline variable — never visible in logs
-                
-                
+                      echo "##vso[task.setvariable variable=SWA_TOKEN;issecret=true]$TOKEN"
+
                 - task: AzureStaticWebApp@0
                   displayName: 'Deploy to Azure Static Web Apps'
                   inputs:
-                    app_location: 'frontend'
-                    output_location: 'www'
+                    app_location: '$(Pipeline.Workspace)/frontend-dist' ## Deployment jobs don't checkout the repo — artifact is auto-downloaded here
+                    output_location: '' # Artifact already contains the built www contents directly, no subfolder needed
                     skip_api_build: true
-                    azure_static_web_apps_api_token: $(SWA_TOKEN) #Token fetched fresh every run — no manual secret management needed
+                    azure_static_web_apps_api_token: $(SWA_TOKEN)
