@@ -22,6 +22,9 @@ stages:
       - job: BuildAngular
         displayName: 'Install & Build Angular App'
         steps:
+
+## installing Node.js and Angular dependencies, then building the app in production mode (minified, optimized, AOT compiled)
+          
           - task: NodeTool@0
             displayName: 'Setup Node.js $(NODE_VERSION)'
             inputs:
@@ -40,11 +43,16 @@ stages:
               workingDir: 'frontend'          # run the build command inside the frontend folder
               customCommand: 'run build -- --configuration production'  # production build: minified, optimized, AOT compiled
 
+
+## Publish the contents of the Angular output folder (dist) as a pipeline artifact so it can be consumed in the Deploy stage. We publish the 'www' folder because that's what SWA CLI expects as input for static assets.
+           
           - task: PublishPipelineArtifact@1
             displayName: 'Publish build artifact'
             inputs:
               targetPath: 'frontend/www'      # Angular output folder (defined in angular.json as outputPath)
               artifact: 'frontend-dist'       # artifact name used to reference it in the Deploy stage
+
+
 
   - stage: Deploy
     displayName: 'Deploy to Azure Static Web Apps'
@@ -56,6 +64,7 @@ stages:
         steps:
           - checkout: none                    # no need to checkout source code — we use the published artifact instead
 
+## download the build artifact published in the Build stage. This contains the production-ready static files to be deployed to Azure Static Web Apps.         
           - task: DownloadPipelineArtifact@2
             displayName: 'Download build artifact'
             inputs:
@@ -82,6 +91,18 @@ stages:
 
                 echo "Token fetched OK (length: ${#TOKEN})"      # prints token length only — safe to log, never reveals the value
                 echo "##vso[task.setvariable variable=SWA_TOKEN;issecret=true]$TOKEN"   # saves token as a secret pipeline variable, masked in logs
+
+          - task: Bash@3
+            displayName: 'Install Docker'
+            inputs:
+              targetType: inline
+              script: |
+                if ! command -v docker &> /dev/null; then          # check if docker is already installed — skip if it is
+                  curl -fsSL https://get.docker.com | sudo sh      # official Docker install script
+                  sudo usermod -aG docker $USER                    # add current user to docker group so it can run docker without sudo
+                  newgrp docker                                     # apply group change in current session without logout
+                fi
+                docker --version                                   # confirm docker is available
 
           - task: AzureStaticWebApp@0
             displayName: 'Deploy to Azure Static Web Apps'
